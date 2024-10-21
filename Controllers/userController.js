@@ -1,9 +1,32 @@
 const express = require("express");
-const bcrypt = require("bcryptjs"); // For password hashing
 const UserModel = require("../modals/userModel");
 const expressAsyncHandler = require("express-async-handler");
+const generateToken = require("../Config/generateToken");
 
-const loginController = () => { };
+// Login
+const loginController = expressAsyncHandler(async (req, res) => {
+    console.log(req.body);
+    const { name, password } = req.body;
+
+    const user = await UserModel.findOne({ name });
+
+    console.log("fetched user Data", user);
+    console.log(await user.matchPassword(password));
+    if (user && (await user.matchPassword(password))) {
+        const response = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            token: generateToken(user._id),
+        };
+        console.log(response);
+        res.json(response);
+    } else {
+        res.status(401);
+        throw new Error("Invalid UserName or Password");
+    }
+});
 
 // Register Controller
 const registerController = expressAsyncHandler(async (req, res) => {
@@ -28,11 +51,25 @@ const registerController = expressAsyncHandler(async (req, res) => {
         res.status(400);
         throw new Error("Username already exists");
     }
+    // Hash password before saving
 
-    // // Hash the password before saving
-    // const salt = await bcrypt.genSalt(10);
-    // const hashedPassword = await bcrypt.hash(password, salt);
+
+
 
     // Create a new user
-    const user = await UserModel.create({ name, email, password: hashedPassword })
+    const user = await UserModel.create({ name, email, password });
+    if (user) {
+        res.status(201).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            token: generateToken(user._id),
+        });
+    } else {
+        res.status(400);
+        throw new Error("Registration Error");
+    }
 });
+
+module.exports = { loginController, registerController }
