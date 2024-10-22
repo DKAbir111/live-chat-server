@@ -77,3 +77,5 @@ io.on("connection", (socket) => {
     });
   });
 });
+
+//updated code with socket.io
